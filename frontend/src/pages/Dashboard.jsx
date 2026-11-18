@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { useFetch } from '../hooks/useFetch.js';
 import Status from '../components/Status.jsx';
+import SearchBox, { filterBooks } from '../components/SearchBox.jsx';
 import StockBadge, { LOW_STOCK_LIMIT } from '../components/StockBadge.jsx';
 
 export default function Dashboard() {
   const { data: books, loading, error } = useFetch('/books');
+  const [query, setQuery] = useState('');
   const low = books.filter((b) => b.quantity < LOW_STOCK_LIMIT);
   const copies = books.reduce((sum, b) => sum + b.quantity, 0);
+  const visible = filterBooks(books, query);
 
   return (
     <>
@@ -27,8 +31,9 @@ export default function Dashboard() {
               </ul>
             </section>
           )}
+          <SearchBox value={query} onChange={setQuery} />
           <section className="card-grid">
-            {books.map((b) => (
+            {visible.map((b) => (
               <article key={b.id} className={`card ${b.quantity < LOW_STOCK_LIMIT ? 'card-low' : ''}`}>
                 <h3>{b.title}</h3>
                 <p className="muted">{b.author}</p>
@@ -36,7 +41,9 @@ export default function Dashboard() {
                 <StockBadge quantity={b.quantity} />
               </article>
             ))}
-            {!books.length && <p className="muted">No books in the catalogue yet.</p>}
+            {!visible.length && (
+              <p className="muted">{books.length ? 'No books match your search.' : 'No books in the catalogue yet.'}</p>
+            )}
           </section>
         </>
       )}
