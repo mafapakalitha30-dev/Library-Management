@@ -6,13 +6,14 @@ export default function TransactionHistory({ transactions, onDelete }) {
     <div className="table-wrap">
       <table>
         <thead>
-          <tr><th>Date</th><th>Book</th><th>Action</th><th>Qty</th><th>Member</th><th>Note</th><th></th></tr>
+          <tr><th>Date</th><th>Book</th><th>Action</th><th>Qty</th><th>Member</th><th>Due</th><th>Note</th><th></th></tr>
         </thead>
         <tbody>
           {transactions.map((t) => (
             <tr key={t.id}>
               <td data-label="Date">{new Date(t.created_at).toLocaleString()}</td>
               <td data-label="Book">{t.book_title}</td>
+              <td data-label="Due">{t.due_date || '—'}</td>
               <td data-label="Action"><span className={`tag tag-${t.type.toLowerCase()}`}>{LABELS[t.type]}</span></td>
               <td data-label="Qty">{t.type === 'BORROW' ? `−${t.quantity}` : `+${t.quantity}`}</td>
               <td data-label="Member">{t.user_name || '—'}</td>

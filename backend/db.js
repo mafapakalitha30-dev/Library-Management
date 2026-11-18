@@ -12,11 +12,19 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   multipleStatements: true,
+  dateStrings: ['DATE'],
 });
 
 // Create tables and a default admin account the first time the server starts.
 async function initDb() {
   await pool.query(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
+    // Add due_date to databases created before this column existed.
+  const [cols] = await pool.query(
+    "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'transactions' AND COLUMN_NAME = 'due_date'"
+  );
+  if (cols.length === 0) {
+    await pool.query('ALTER TABLE transactions ADD COLUMN due_date DATE NULL AFTER notes');
+  }
   const [[{ count }]] = await pool.query('SELECT COUNT(*) AS count FROM users');
   if (count === 0) {
     const hash = await bcrypt.hash('admin123', 10);

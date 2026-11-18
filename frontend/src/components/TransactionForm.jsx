@@ -7,7 +7,7 @@ const TYPES = [
 ];
 
 export default function TransactionForm({ books, users, onSubmit }) {
-  const blank = { book_id: '', type: 'RESTOCK', quantity: 1, user_id: '', notes: '' };
+  const blank = { book_id: '', type: 'RESTOCK', quantity: 1, user_id: '', notes: '', due_date: '' };
   const [values, setValues] = useState(blank);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
@@ -23,11 +23,12 @@ export default function TransactionForm({ books, users, onSubmit }) {
     if (!Number.isInteger(Number(values.quantity)) || Number(values.quantity) < 1) found.quantity = 'Use a whole number, 1 or more';
     if (needsUser && !values.user_id) found.user_id = 'Choose a member';
     setErrors(found);
+    if (values.type === 'BORROW' && !values.due_date) found.due_date = 'Choose a due date';
     if (Object.keys(found).length) return;
     setSaving(true);
     setServerError('');
     try {
-      await onSubmit({ ...values, quantity: Number(values.quantity), user_id: needsUser ? values.user_id : null });
+      await onSubmit({ ...values, quantity: Number(values.quantity), user_id: needsUser ? values.user_id : null, due_date: values.type === 'BORROW' ? values.due_date : null });
       setValues({ ...blank, type: values.type });
     } catch (err) {
       setServerError(err.message);
@@ -38,6 +39,13 @@ export default function TransactionForm({ books, users, onSubmit }) {
 
   return (
     <form className="form-grid" onSubmit={handleSubmit} noValidate>
+            {values.type === 'BORROW' && (
+        <label className="field">
+          <span>Due date</span>
+          <input type="date" name="due_date" value={values.due_date} onChange={handleChange} aria-invalid={Boolean(errors.due_date)} />
+          {errors.due_date && <small className="error">{errors.due_date}</small>}
+        </label>
+      )}
       <label className="field">
         <span>Action</span>
         <select name="type" value={values.type} onChange={handleChange}>

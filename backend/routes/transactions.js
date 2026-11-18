@@ -30,12 +30,13 @@ router.get('/:id', wrap(async (req, res) => {
 
 // Record a transaction and update stock atomically.
 router.post('/', wrap(async (req, res) => {
-  const { book_id, user_id, type, notes } = req.body;
+  const { book_id, user_id, type, notes, due_date } = req.body;
   const quantity = Number(req.body.quantity);
   if (!book_id) throw new HttpError(400, 'Choose a book');
   if (!TYPES.includes(type)) throw new HttpError(400, 'Type must be RESTOCK, BORROW or RETURN');
   if (!Number.isInteger(quantity) || quantity < 1) throw new HttpError(400, 'Quantity must be a whole number of 1 or more');
   if (type !== 'RESTOCK' && !user_id) throw new HttpError(400, 'Choose the member for a borrow or return');
+  if (due_date && !/^\d{4}-\d{2}-\d{2}$/.test(due_date)) throw new HttpError(400, 'Due date must be a valid date');
 
   const conn = await pool.getConnection();
   try {
@@ -46,8 +47,8 @@ router.post('/', wrap(async (req, res) => {
     if (newQty < 0) throw new HttpError(400, `Only ${book.quantity} cop${book.quantity === 1 ? 'y' : 'ies'} in stock`);
     await conn.query('UPDATE books SET quantity = ? WHERE id = ?', [newQty, book_id]);
     const [result] = await conn.query(
-      'INSERT INTO transactions (book_id, user_id, type, quantity, notes) VALUES (?,?,?,?,?)',
-      [book_id, user_id || null, type, quantity, notes?.trim() || null]
+    'INSERT INTO transactions (book_id, user_id, type, quantity, notes, due_date) VALUES (?,?,?,?,?,?)',
+    [book_id, user_id || null, type, quantity, notes?.trim() || null, type === 'BORROW' ? due_date || null : null]
     );
     await conn.commit();
     const [[row]] = await pool.query(`${SELECT} WHERE t.id = ?`, [result.insertId]);
